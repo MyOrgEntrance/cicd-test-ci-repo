@@ -1,0 +1,51 @@
+# app-repo/.github/workflows/trigger_cd.yml
+name: '1. Trigger CD Workflow (via GitHub App)'
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  trigger-cd-repo:
+    runs-on: ubuntu-latest
+    steps:
+      # GitHub Appから認証トークンを生成
+      - name: Generate GitHub App Token
+        id: generate_token
+        uses: actions/create-github-app-token@v2
+        with:
+          app-id: ${{ secrets.APP_ID }}
+          private-key: ${{ secrets.APP_PRIVATE_KEY }}
+          owner: 'MyOrgEntrance'
+          repositories: 'cicd-test-ci-repo, cicd-test-cd-repo'
+
+      # 適当な文字列をランダム生成
+      - name: Generate random string
+        id: random
+        run: echo "random_id=$(date +%s)-$(openssl rand -hex 4)" >> $GITHUB_OUTPUT
+
+      # 【デバッグ用】このトークンがアクセスできるリポジトリ一覧を出力
+      - name: List accessible repositories
+        env:
+          GH_TOKEN: ${{ steps.generate_token.outputs.token }}
+        run: |
+          echo "Token has access to the following repositories: "
+          gh api /installation/repositories | jq -r ".repositories[].full_name"
+
+      # 生成したAppトークンを使ってcd-repoのワークフローを呼び出す
+      - name: Trigger cd-repo workflow via GitHub CLI
+        env:
+          # ghコマンドの認証にAppトークンを使用する
+          GH_TOKEN: ${{ steps.generate_token.outputs.token }}
+        run: |
+          # jq を使って正しいJSONペイロードを組み立てる
+          # client_payload の値がJSONオブジェクトになるようにする
+          jq -n \
+            --arg rs "${{ steps.random.outputs.random_id }}" \
+            '{event_type: "trigger-from-app-repo", client_payload: {random_string: $rs}}' | \
+          gh api \
+            --method POST \
+            -H "Accept: application/vnd.github+json" \
+            /repos/MyOrgEntrance/cicd-test-cd-repo/dispatches \
+            --input -
