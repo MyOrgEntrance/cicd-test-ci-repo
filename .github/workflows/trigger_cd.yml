@@ -20,12 +20,7 @@ jobs:
           owner: 'MyOrgEntrance'
           repositories: 'cicd-test-ci-repo, cicd-test-cd-repo'
 
-      # 適当な文字列をランダム生成
-      - name: Generate random string
-        id: random
-        run: echo "random_id=$(date +%s)-$(openssl rand -hex 4)" >> $GITHUB_OUTPUT
-
-      # 【デバッグ用】このトークンがアクセスできるリポジトリ一覧を出力
+      # このトークンがアクセスできるリポジトリ一覧を出力
       - name: List accessible repositories
         env:
           GH_TOKEN: ${{ steps.generate_token.outputs.token }}
@@ -33,18 +28,52 @@ jobs:
           echo "Token has access to the following repositories: "
           gh api /installation/repositories | jq -r ".repositories[].full_name"
 
+      # 適当な文字列をランダム生成
+      - name: Generate random string
+        id: random
+        run: echo "random_id=$(date +%s)-$(openssl rand -hex 4)" >> $GITHUB_OUTPUT
+
+      # metadata.yamlを作成
+      - name: Create metadata.yaml
+        run: |
+          cat <<EOF > metadata.yaml
+          ---
+          - name: sample-app
+            random: ${{ steps.random.outputs.random_id }}
+            repository: ${{ github.repository }}
+            commitid: ${{ github.sha }}
+          EOF
+
+      # metadata.yamlをアーティファクトとしてアップロード
+      - name: Upload metadata as artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: metadata-artifact
+          path: metadata.yaml
+
       # 生成したAppトークンを使ってcd-repoのワークフローを呼び出す
       - name: Trigger cd-repo workflow via GitHub CLI
         env:
           # ghコマンドの認証にAppトークンを使用する
           GH_TOKEN: ${{ steps.generate_token.outputs.token }}
         run: |
-          # jq を使って正しいJSONペイロードを組み立てる
-          # client_payload の値がJSONオブジェクトになるようにする
-          jq -n \
-            --arg rs "${{ steps.random.outputs.random_id }}" \
-            '{event_type: "trigger-from-ci-repo", client_payload: {random_string: $rs}}' | \
-          gh api \
+          # ペイロードを生成
+          PAYLOAD=$(jq -n \
+            --arg ci_repo "${{ github.repository }}" \
+            --arg ci_run_id "${{ github.run_id }}" \
+            '{
+              "event_type": "trigger-from-ci-repo",
+              "client_payload": {
+                "ci_repo": $ci_repo,
+                "ci_run_id": $ci_run_id
+              }
+            }')
+          echo "--- Generated Payload ---"
+          echo "$PAYLOAD"
+          echo "-------------------------"
+
+          # cd-repoのワークフローの呼び出し
+          echo "$PAYLOAD" | gh api \
             --method POST \
             -H "Accept: application/vnd.github+json" \
             /repos/MyOrgEntrance/cicd-test-cd-repo/dispatches \
