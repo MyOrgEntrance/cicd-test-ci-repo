@@ -63,7 +63,7 @@ jobs:
           PAYLOAD=$(jq -n \
             --arg ci_repo "${{ github.repository }}" \
             --arg ci_run_id "${{ github.run_id }}" \
-            --arg ci_metadata_art_id "${{ steps.upload_meta.outputs.artifact-id }}" \
+            --arg ci_art_metadata_name "metadata-artifact" \
             '{
               "event_type": "trigger-from-ci-repo",
               "client_payload": {
