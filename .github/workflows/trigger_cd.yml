@@ -25,8 +25,9 @@ jobs:
         env:
           GH_TOKEN: ${{ steps.generate_token.outputs.token }}
         run: |
-          echo "Token has access to the following repositories: "
+          echo "--- Accessible repositories ---"
           gh api /installation/repositories | jq -r ".repositories[].full_name"
+          echo "-------------------------------"
 
       # 適当な文字列をランダム生成
       - name: Generate random string
@@ -46,6 +47,7 @@ jobs:
 
       # metadata.yamlをアーティファクトとしてアップロード
       - name: Upload metadata as artifact
+        id: upload_meta
         uses: actions/upload-artifact@v4
         with:
           name: metadata-artifact
@@ -61,11 +63,13 @@ jobs:
           PAYLOAD=$(jq -n \
             --arg ci_repo "${{ github.repository }}" \
             --arg ci_run_id "${{ github.run_id }}" \
+            --arg ci_metadata_art_id "${{ steps.upload_meta.outputs.artifact-id }}" \
             '{
               "event_type": "trigger-from-ci-repo",
               "client_payload": {
                 "ci_repo": $ci_repo,
-                "ci_run_id": $ci_run_id
+                "ci_run_id": $ci_run_id,
+                "ci_metadata_art_id": $ci_metadata_art_id
               }
             }')
           echo "--- Generated Payload ---"
