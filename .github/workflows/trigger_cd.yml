@@ -69,7 +69,7 @@ jobs:
               "client_payload": {
                 "ci_repo": $ci_repo,
                 "ci_run_id": $ci_run_id,
-                "ci_metadata_art_id": $ci_metadata_art_id
+                "ci_art_metadata_name": $ci_art_metadata_name
               }
             }')
           echo "--- Generated Payload ---"
