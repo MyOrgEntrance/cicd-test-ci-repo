@@ -43,7 +43,7 @@ jobs:
           # client_payload の値がJSONオブジェクトになるようにする
           jq -n \
             --arg rs "${{ steps.random.outputs.random_id }}" \
-            '{event_type: "trigger-from-app-repo", client_payload: {random_string: $rs}}' | \
+            '{event_type: "trigger-from-ci-repo", client_payload: {random_string: $rs}}' | \
           gh api \
             --method POST \
             -H "Accept: application/vnd.github+json" \
