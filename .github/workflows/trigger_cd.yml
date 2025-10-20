@@ -5,6 +5,7 @@ on:
   push:
     branches:
       - main
+  workflow_dispatch:
 
 jobs:
   trigger-cd-repo:
@@ -55,6 +56,8 @@ jobs:
 
       # 生成したAppトークンを使ってcd-repoのワークフローを呼び出す
       - name: Trigger cd-repo workflow via GitHub CLI
+        # リポジトリ変数 AUTO_DEPLOY が 'true' の場合のみ実行
+        if: vars.AUTO_DEPLOY == 'true'
         env:
           # ghコマンドの認証にAppトークンを使用する
           GH_TOKEN: ${{ steps.generate_token.outputs.token }}
