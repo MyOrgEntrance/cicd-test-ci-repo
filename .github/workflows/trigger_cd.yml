@@ -1,5 +1,5 @@
 # app-repo/.github/workflows/trigger_cd.yml
-name: '1. Trigger CD Workflow (via GitHub App)'
+name: 'Trigger Auto Deploy Workflow (via GitHub App)'
 
 on:
   push:
