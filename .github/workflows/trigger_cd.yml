@@ -10,6 +10,9 @@ on:
 jobs:
   trigger-cd-repo:
     runs-on: ubuntu-latest
+    env:
+      AUTO_DEPLOY_OWNER: 'MyOrgEntrance'
+      AUTO_DEPLOY_REPOS: 'cicd-test-ci-repo, cicd-test-cd-repo'
     steps:
       # GitHub Appから認証トークンを生成
       - name: Generate GitHub App Token
@@ -18,8 +21,8 @@ jobs:
         with:
           app-id: ${{ secrets.APP_ID }}
           private-key: ${{ secrets.APP_PRIVATE_KEY }}
-          owner: 'MyOrgEntrance'
-          repositories: 'cicd-test-ci-repo, cicd-test-cd-repo'
+          owner: ${{ env.AUTO_DEPLOY_OWNER }}
+          repositories: ${{ env.AUTO_DEPLOY_REPOS }}
 
       # このトークンがアクセスできるリポジトリ一覧を出力
       - name: List accessible repositories
@@ -33,7 +36,7 @@ jobs:
       # 適当な文字列をランダム生成
       - name: Generate random string
         id: random
-        run: echo "random_id=$(date +%s)-$(openssl rand -hex 4)" >> $GITHUB_OUTPUT
+        run: echo "random_id=$(date +%s)-$(openssl rand -hex 4)"
 
       # metadata.yamlを作成
       - name: Create metadata.yaml
@@ -57,13 +60,13 @@ jobs:
       # 生成したAppトークンを使ってcd-repoのワークフローを呼び出す
       - name: Trigger cd-repo workflow via GitHub CLI
         # リポジトリ変数 AUTO_DEPLOY が 'true' の場合のみ実行
-        if: vars.AUTO_DEPLOY == 'true'
+        if: vars.AUTO_DEPLOY_FLG == 'true'
         env:
           # ghコマンドの認証にAppトークンを使用する
           GH_TOKEN: ${{ steps.generate_token.outputs.token }}
         run: |
           echo "✅ Auto-deploy triggered."
-          echo "Reason: Repository variable 'AUTO_DEPLOY' is set to 'true'."
+          echo "Reason: Repository variable 'AUTO_DEPLOY_FLG' is set to 'true'."
           
           # ペイロードを生成
           PAYLOAD=$(jq -n \
